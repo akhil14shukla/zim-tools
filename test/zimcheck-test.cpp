@@ -416,8 +416,10 @@ TEST(zimcheck, json_goodzimfile)
     }));
 
     ASSERT_EQ(
-      "{" "\n"
-      "\t'zimcheck_version' : '2.1.1'" "\n"
+      "{"                                                         "\n"
+      "  'zimcheck_version' : '2.1.1',"                           "\n"
+      "  'file_name' : 'data/zimfiles/good.zim',"                 "\n"
+      "  'file_uuid' : '00000000-0000-0000-0000-000000000000'"    "\n"
       "}" "\n"
       , std::string(zimcheck_output)
     );
