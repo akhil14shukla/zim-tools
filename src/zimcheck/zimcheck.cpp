@@ -312,9 +312,10 @@ int zimcheck (const std::vector<const char*>& args)
              enabled_tests.isEnabled(TestType::EMPTY) )
           test_articles(archive, error, progress, enabled_tests);
 
-
+        const bool overallStatus = error.overallStatus();
+        error.addInfo("status", overallStatus);
         error.report(error_details);
-        if( error.overallStatus())
+        if( overallStatus )
         {
             error.infoMsg("[INFO] Overall Test Status: Pass");
             status_code = PASS;
