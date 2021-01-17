@@ -58,6 +58,7 @@ void displayHelp()
              "-X , --url_external    URL check - External URLs\n"
              "-D , --details         Details of error\n"
              "-B , --progress        Print progress report\n"
+             "-J , --json            Output in JSON format\n"
              "-H , --help            Displays Help\n"
              "-V , --version         Displays software version\n"
              "examples:\n"
@@ -84,11 +85,11 @@ int zimcheck (const std::vector<const char*>& args)
     EnabledTests enabled_tests;
     bool error_details = false;
     bool no_args = true;
+    bool json = false;
     bool help = false;
 
     std::string filename = "";
     ProgressBar progress(1);
-    ErrorLogger error;
 
     StatusCode status_code = PASS;
 
@@ -112,6 +113,7 @@ int zimcheck (const std::vector<const char*>& args)
             { "url_internal", no_argument, 0, 'U'},
             { "url_external", no_argument, 0, 'X'},
             { "details",      no_argument, 0, 'D'},
+            { "json",         no_argument, 0, 'J'},
             { "help",         no_argument, 0, 'H'},
             { "version",      no_argument, 0, 'V'},
             { 0, 0, 0, 0}
@@ -181,6 +183,10 @@ int zimcheck (const std::vector<const char*>& args)
         case 'd':
             error_details = true;
             break;
+        case 'J':
+        case 'j':
+            json = true;
+            break;
         case 'H':
         case 'h':
             help=true;
@@ -226,10 +232,12 @@ int zimcheck (const std::vector<const char*>& args)
         displayHelp();
         return -1;
     }
+
+    ErrorLogger error(json);
     //Tests.
     try
     {
-        std::cout << "[INFO] Checking zim file " << filename << std::endl;
+        error.infoMsg("[INFO] Checking zim file " + filename);
 
         //Test 0: Low-level ZIM-file structure integrity checks
         if(enabled_tests.isEnabled(TestType::INTEGRITY))
@@ -242,9 +250,10 @@ int zimcheck (const std::vector<const char*>& args)
         //Test 1: Internal Checksum
         if(enabled_tests.isEnabled(TestType::CHECKSUM)) {
             if ( enabled_tests.isEnabled(TestType::INTEGRITY) ) {
-                std::cout << "[INFO] Avoiding redundant checksum test"
-                          << " (already performed by the integrity check)."
-                          << std::endl;
+                error.infoMsg(
+                    "[INFO] Avoiding redundant checksum test"
+                    " (already performed by the integrity check)."
+                );
             } else {
                 test_checksum(archive, error);
             }
@@ -294,22 +303,23 @@ int zimcheck (const std::vector<const char*>& args)
 
 
         error.report(error_details);
-        std::cout << "[INFO] Overall Test Status: ";
         if( error.overallStatus())
         {
-            std::cout << "Pass" << std::endl;
+            error.infoMsg("[INFO] Overall Test Status: Pass");
             status_code = PASS;
         }
         else
         {
-            std::cout << "Fail" << std::endl;
+            error.infoMsg("[INFO] Overall Test Status: Fail");
             status_code = FAIL;
         }
 
         const auto endtime = std::chrono::steady_clock::now();
         const std::chrono::duration<double> runtime(endtime - starttime);
         const long seconds = lround(runtime.count());
-        std::cout << "[INFO] Total time taken by zimcheck: " << seconds << " seconds." << std::endl;
+        std::ostringstream ss;
+        ss << "[INFO] Total time taken by zimcheck: " << seconds << " seconds.";
+        error.infoMsg(ss.str());
     }
     catch (const std::exception & e)
     {
