@@ -418,6 +418,7 @@ TEST(zimcheck, json_goodzimfile)
     ASSERT_EQ(
       "{"                                                         "\n"
       "  'zimcheck_version' : '2.1.1',"                           "\n"
+      "  'checks' : ['checksum', 'integrity', 'empty', 'metadata', 'favicon', 'main_page', 'redundant', 'url_internal', 'url_external']," "\n"
       "  'file_name' : 'data/zimfiles/good.zim',"                 "\n"
       "  'file_uuid' : '00000000-0000-0000-0000-000000000000',"   "\n"
       "  'status' : true"                                         "\n"
@@ -658,6 +659,7 @@ TEST(zimcheck, json_bad_checksum)
     ASSERT_EQ(
       "{"                                                         "\n"
       "  'zimcheck_version' : '2.1.1',"                           "\n"
+      "  'checks' : ['checksum'],"                                "\n"
       "  'file_name' : 'data/zimfiles/bad_checksum.zim',"         "\n"
       "  'file_uuid' : '00000000-0000-0000-0000-000000000000',"   "\n"
       "  'status' : false"                                        "\n"

@@ -38,7 +38,6 @@ enum class TestType {
     REDUNDANT,
     URL_INTERNAL,
     URL_EXTERNAL,
-    OTHER,
 
     COUNT
 };
@@ -85,6 +84,33 @@ class ErrorLogger {
 
     static const char* formatForJSON(bool b) {
       return b ? "true" : "false";
+    }
+
+    static const char* formatForJSON(TestType tt) {
+        switch(tt) {
+          case TestType::CHECKSUM:     return "'checksum'";
+          case TestType::INTEGRITY:    return "'integrity'";
+          case TestType::EMPTY:        return "'empty'";
+          case TestType::METADATA:     return "'metadata'";
+          case TestType::FAVICON:      return "'favicon'";
+          case TestType::MAIN_PAGE:    return "'main_page'";
+          case TestType::REDUNDANT:    return "'redundant'";
+          case TestType::URL_INTERNAL: return "'url_internal'";
+          case TestType::URL_EXTERNAL: return "'url_external'";
+          default:  throw std::logic_error("Invalid TestType");
+        };
+    }
+
+    static std::string formatForJSON(EnabledTests checks) {
+        std::string result;
+        for ( size_t i = 0; i < size_t(TestType::COUNT); ++i ) {
+            if ( checks.isEnabled(TestType(i)) ) {
+                if ( !result.empty() )
+                  result += ", ";
+                result += formatForJSON(TestType(i));
+            }
+        }
+        return "[" + result + "]";
     }
 
   public:

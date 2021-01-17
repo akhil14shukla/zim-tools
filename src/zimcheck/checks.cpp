@@ -27,7 +27,6 @@ std::unordered_map<TestType, std::pair<LogTag, std::string>> errormapping = {
     { TestType::REDUNDANT,     {LogTag::WARNING, "Redundant data found"}},
     { TestType::URL_INTERNAL,  {LogTag::ERROR, "Invalid internal links found"}},
     { TestType::URL_EXTERNAL,  {LogTag::ERROR, "Invalid external links found"}},
-    { TestType::OTHER,      {LogTag::ERROR, "Other errors found"}}
 };
 
 } // unnamed namespace
