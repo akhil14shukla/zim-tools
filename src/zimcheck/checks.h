@@ -146,6 +146,7 @@ class ErrorLogger {
     }
 
     void report(bool error_details) const {
+      if ( !jsonOutputMode ) {
         for ( size_t i = 0; i < size_t(TestType::COUNT); ++i ) {
             const auto& testmsg = reportMsgs[i];
             if ( !testStatus[i] ) {
@@ -156,6 +157,7 @@ class ErrorLogger {
                 }
             }
         }
+      }
     }
 
     inline bool overallStatus() const {
