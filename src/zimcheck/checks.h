@@ -63,8 +63,14 @@ using MsgParams = kainjow::mustache::object;
 
 class ErrorLogger {
   private:
+    struct MsgIdWithParams
+    {
+      MsgId msgId;
+      MsgParams msgParams;
+    };
+
     // reportMsgs[i] holds messages for the i'th test/check
-    std::vector<std::vector<std::string>> reportMsgs;
+    std::vector<std::vector<MsgIdWithParams>> reportMsgs;
 
     // testStatus[i] corresponds to the status of i'th test
     std::bitset<size_t(TestType::COUNT)> testStatus;
@@ -114,6 +120,8 @@ class ErrorLogger {
         return "[" + result + "]";
     }
 
+    static std::string expand(const MsgIdWithParams& msg);
+
   public:
     explicit ErrorLogger(bool _jsonOutputMode = false);
     ~ErrorLogger();
@@ -131,7 +139,6 @@ class ErrorLogger {
     }
 
     void setTestResult(TestType type, bool status);
-    void addReportMsg(TestType type, const std::string& message);
     void addMsg(MsgId msgid, const MsgParams& msgParams);
     void report(bool error_details) const;
     bool overallStatus() const;
