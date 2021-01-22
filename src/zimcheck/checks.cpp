@@ -50,10 +50,26 @@ struct MsgInfo
 };
 
 std::unordered_map<MsgId, MsgInfo> msgTable = {
+  { MsgId::CHECKSUM,         { TestType::CHECKSUM, "ZIM Archive Checksum in archive: {{archive_checksum}}\n" } },
+  { MsgId::MAIN_PAGE,        { TestType::MAIN_PAGE, "Main Page Index stored in Archive Header: {{main_page_index}}" } },
+  { MsgId::EMPTY_ENTRY,      { TestType::EMPTY, "Entry {{path}} is empty" } },
+  { MsgId::OUTOFBOUNDS_LINK, { TestType::URL_INTERNAL, "{{link}} is out of bounds. Article: {{path}}" } },
+  { MsgId::EMPTY_LINKS,      { TestType::URL_INTERNAL, "Found {{count}} empty links in article: {{path}}" } },
+  { MsgId::DANGLING_LINKS,   { TestType::URL_INTERNAL, "The following links:\n{{#links}}- {{link}}\n{{/links}}({{normalized_link}}) were not found in article {{path}}" } },
+  { MsgId::EXTERNAL_LINK,    { TestType::URL_EXTERNAL, "{{link}} is an external dependence in article {{path}}" } },
+  { MsgId::REDUNDANT_ITEMS,  { TestType::REDUNDANT, "{{path1}} and {{path2}}" } },
   { MsgId::MISSING_METADATA, { TestType::METADATA, "{{metadata_type}}" } }
 };
 
 using kainjow::mustache::mustache;
+
+template<typename T>
+std::string toStr(T t)
+{
+  std::ostringstream ss;
+  ss << t;
+  return ss.str();
+}
 
 } // unnamed namespace
 
@@ -126,12 +142,9 @@ bool ErrorLogger::overallStatus() const {
 void test_checksum(zim::Archive& archive, ErrorLogger& reporter) {
     reporter.infoMsg("[INFO] Verifying Internal Checksum...");
     bool result = archive.check();
-    reporter.setTestResult(TestType::CHECKSUM, result);
     if (!result) {
         reporter.infoMsg("  [ERROR] Wrong Checksum in ZIM archive");
-        std::ostringstream ss;
-        ss << "ZIM Archive Checksum in archive: " << archive.getChecksum() << std::endl;
-        reporter.addReportMsg(TestType::CHECKSUM, ss.str());
+        reporter.addMsg(MsgId::CHECKSUM, {{"archive_checksum", archive.getChecksum()}});
     }
 }
 
@@ -185,11 +198,8 @@ void test_mainpage(const zim::Archive& archive, ErrorLogger& reporter) {
     } catch(...) {
         testok = false;
     }
-    reporter.setTestResult(TestType::MAIN_PAGE, testok);
     if (!testok) {
-        std::ostringstream ss;
-        ss << "Main Page Index stored in Archive Header: " << archive.getMainEntryIndex();
-        reporter.addReportMsg(TestType::MAIN_PAGE, ss.str());
+        reporter.addMsg(MsgId::MAIN_PAGE, {{"main_page_index", toStr(archive.getMainEntryIndex())}});
     }
 }
 
@@ -216,10 +226,7 @@ void test_articles(const zim::Archive& archive, ErrorLogger& reporter, ProgressB
         if (checks.isEnabled(TestType::EMPTY) && (ns == 'C' || ns=='A' || ns == 'I')) {
             auto item = entry.getItem();
             if (item.getSize() == 0) {
-                std::ostringstream ss;
-                ss << "Entry " << path << " is empty";
-                reporter.addReportMsg(TestType::EMPTY, ss.str());
-                reporter.setTestResult(TestType::EMPTY, false);
+                reporter.addMsg(MsgId::EMPTY_ENTRY, {{"path", path}});
             }
         }
 
@@ -266,10 +273,7 @@ void test_articles(const zim::Archive& archive, ErrorLogger& reporter, ProgressB
 
                 if (isOutofBounds(l.link, baseUrl))
                 {
-                    std::ostringstream ss;
-                    ss << l.link << " is out of bounds. Article: " << path;
-                    reporter.addReportMsg(TestType::URL_INTERNAL, ss.str());
-                    reporter.setTestResult(TestType::URL_INTERNAL, false);
+                    reporter.addMsg(MsgId::OUTOFBOUNDS_LINK, {{"link", l.link}, {"path", path}});
                     continue;
                 }
 
@@ -279,10 +283,7 @@ void test_articles(const zim::Archive& archive, ErrorLogger& reporter, ProgressB
 
             if (nremptylinks)
             {
-                std::ostringstream ss;
-                ss << "Found " << nremptylinks << " empty links in article: " << path;
-                reporter.addReportMsg(TestType::URL_INTERNAL, ss.str());
-                reporter.setTestResult(TestType::URL_INTERNAL, false);
+                reporter.addMsg(MsgId::EMPTY_LINKS, {{"count", toStr(nremptylinks)}, {"path", path}});
             }
 
             for(const auto &p: filtered)
@@ -292,12 +293,11 @@ void test_articles(const zim::Archive& archive, ErrorLogger& reporter, ProgressB
                     int index = item.getIndex();
                     if (previousIndex != index)
                     {
-                        std::ostringstream ss;
-                        ss << "The following links:\n";
+                        typedef kainjow::mustache::data data;
+                        data links(data::type::list);
                         for (const auto &olink : p.second)
-                            ss << "- " << olink << '\n';
-                        ss << "(" << link << ") were not found in article " << path;
-                        reporter.addReportMsg(TestType::URL_INTERNAL, ss.str());
+                            links << data{"link", olink};
+                        reporter.addMsg(MsgId::DANGLING_LINKS, {{"path", path}, {"normalized_link", link}, {"links", links}});
                         previousIndex = index;
                     }
                     reporter.setTestResult(TestType::URL_INTERNAL, false);
@@ -311,10 +311,7 @@ void test_articles(const zim::Archive& archive, ErrorLogger& reporter, ProgressB
             {
                 if (l.attribute == "src" && l.isExternalUrl())
                 {
-                    std::ostringstream ss;
-                    ss << l.link << " is an external dependence in article " << path;
-                    reporter.addReportMsg(TestType::URL_EXTERNAL, ss.str());
-                    reporter.setTestResult(TestType::URL_EXTERNAL, false);
+                    reporter.addMsg(MsgId::EXTERNAL_LINK, {{"link", l.link}, {"path", path}});
                     break;
                 }
             }
@@ -346,10 +343,7 @@ void test_articles(const zim::Archive& archive, ErrorLogger& reporter, ProgressB
                             continue;
                         }
 
-                        reporter.setTestResult(TestType::REDUNDANT, false);
-                        std::ostringstream ss;
-                        ss << e1.getPath() << " and " << e2.getPath();
-                        reporter.addReportMsg(TestType::REDUNDANT, ss.str());
+                        reporter.addMsg(MsgId::REDUNDANT_ITEMS, {{"path1", e1.getPath()}, {"path2", e2.getPath()}});
                     }
                     l.swap(articlesDifferentFromE1);
                 }

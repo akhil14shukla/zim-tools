@@ -48,7 +48,15 @@ class EnabledTests {
 
 enum class MsgId
 {
-  MISSING_METADATA
+  CHECKSUM,
+  MAIN_PAGE,
+  MISSING_METADATA,
+  EMPTY_ENTRY,
+  OUTOFBOUNDS_LINK,
+  EMPTY_LINKS,
+  DANGLING_LINKS,
+  EXTERNAL_LINK,
+  REDUNDANT_ITEMS
 };
 
 using MsgParams = kainjow::mustache::object;
